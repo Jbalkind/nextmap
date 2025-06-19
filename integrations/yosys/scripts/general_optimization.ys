@@ -1,0 +1,42 @@
+# General purpose optimization script
+# This script applies multiple nextmap rewrite rules for comprehensive optimization
+# Includes commutativity, associativity, and retiming transformations
+
+# Usage: yosys -m ../nextmap_plugin_simple.so -s general_optimization.ys <input.v>
+
+# Read the input design (can be specified as parameter)
+read_verilog $1
+
+# Perform standard synthesis preprocessing
+hierarchy -auto-top
+proc
+opt_merge
+opt_clean
+opt_dff
+wreduce
+
+# Show original statistics
+log "=== ORIGINAL DESIGN ==="
+stat
+
+# Apply nextmap comprehensive optimization
+# This will use all available rewrite rules in the runner
+nextmap -strategy comprehensive
+
+# Show optimized statistics
+log "=== AFTER NEXTMAP OPTIMIZATION ==="
+stat
+
+# Clean up and optimize further
+opt
+opt_clean
+
+# Final statistics
+log "=== FINAL OPTIMIZED DESIGN ==="
+stat
+
+# Write results
+write_verilog optimized_design.v
+write_json optimized_design.json
+
+log "Optimization complete. Output files: optimized_design.v, optimized_design.json"

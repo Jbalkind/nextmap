@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nextmap"
+version = "0.1.0"
+description = "E-graph based technology mapping and optimization for hardware netlists"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+authors = [{ name = "Sijie Kong" }]
+keywords = ["eda", "technology-mapping", "e-graph", "yosys", "fpga", "dsp"]
+
+# Core runtime dependencies. The default extraction solver is CBC, shipped with
+# PuLP, so no proprietary solver is required for a working install.
+dependencies = [
+    "numpy>=1.23",
+    "scipy>=1.9",
+    "pulp>=2.7",
+]
+
+[project.optional-dependencies]
+# PostgreSQL database backend (alternative to the built-in SQLite backend).
+postgres = ["psycopg2-binary>=2.9"]
+# Gurobi ILP backend (requires a separate Gurobi license).
+gurobi = ["gurobipy>=10.0"]
+# Everything needed to run the example notebooks.
+examples = ["jupyter", "matplotlib"]
+# Convenience: all optional backends at once.
+all = ["psycopg2-binary>=2.9", "gurobipy>=10.0"]
+
+[tool.setuptools]
+packages = ["nextmap", "nextmap.extracts", "nextmap.rewrites"]
+
+[tool.setuptools.package-data]
+# Ship the SQL schemas and schema docs alongside the package so NetlistDB can
+# locate them at runtime regardless of the working directory.
+nextmap = ["*.sql", "README_SCHEMA.md"]

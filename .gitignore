@@ -1,0 +1,30 @@
+__pycache__
+/eval/out
+/*.json
+/*.v
+/*.history
+
+# Python packaging / build artifacts
+*.egg-info/
+/build/
+/dist/
+# Compiled emapcc accelerator (built on demand via nextmap/emapcc/build.sh)
+nextmap/emapcc/build/
+# Local virtualenvs
+/venv/
+/.venv/
+# Generated demo outputs
+examples/**/*.json
+examples/**/*_run.ipynb
+# Generated EPFL netlist JSON (regenerate via eval/scripts/synth_designs.sh)
+eval/epfl/*.json
+
+# Yosys plugin build artifacts
+integrations/yosys/*.so
+integrations/yosys/*.d
+
+# Editor swap files
+*.swp
+*.swo
+# Claude Code session/runtime state
+.claude/

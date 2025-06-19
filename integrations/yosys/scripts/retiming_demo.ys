@@ -1,0 +1,26 @@
+# Retiming optimization demo script
+# This script demonstrates DFF retiming to reduce flip-flop count
+# Based on the bad_multiplier example from demo.ipynb
+
+# Read the input Verilog design
+read_verilog tests/bad_multiplier.v
+
+# Perform basic synthesis steps
+proc
+opt_merge
+opt_clean
+
+# Show statistics before optimization
+log "=== BEFORE NEXTMAP RETIMING ==="
+stat
+
+# Apply nextmap retiming optimization
+nextmap -strategy retiming
+
+# Show statistics after optimization
+log "=== AFTER NEXTMAP RETIMING ==="
+stat
+
+# Write optimized design
+write_verilog bad_multiplier_retimed.v
+write_json bad_multiplier_retimed.json

@@ -1,0 +1,40 @@
+# DSP technology mapping demo script
+# This script demonstrates mapping multiply-add patterns to DSP blocks
+# Based on the dot_product example from demo.ipynb
+
+# Read the input Verilog design
+read_verilog tests/dot_product.v
+
+# Perform basic synthesis steps
+proc
+opt_merge
+opt_clean
+
+# Show statistics before optimization
+log "=== BEFORE NEXTMAP DSP MAPPING ==="
+stat
+
+# Apply nextmap with DSP mapping optimization
+# Note: This will require extending nextmap_runner.py to support DSP rules
+nextmap
+
+# Show statistics after optimization
+log "=== AFTER NEXTMAP DSP MAPPING ==="
+stat
+
+# Compare with standard Xilinx synthesis
+log "=== COMPARISON: Standard Xilinx Synthesis ==="
+design -reset
+read_verilog tests/dot_product.v
+synth_xilinx -family xcup
+stat
+
+# Write optimized design
+design -reset
+read_verilog tests/dot_product.v
+proc
+opt_merge
+opt_clean
+nextmap
+write_verilog dot_product_dsp_mapped.v
+write_json dot_product_dsp_mapped.json

@@ -1,0 +1,67 @@
+# FIR Filter Evaluation Script
+# This script evaluates FIR filter designs with nextmap DSP optimization
+# Based on eval_fir_v2.ipynb
+
+# Check if design parameter is provided
+if [string equal $1 ""] {
+    echo "Usage: yosys -m ../nextmap_plugin_simple.so -s fir_eval.ys <design_name>"
+    echo "Example: yosys -m ../nextmap_plugin_simple.so -s fir_eval.ys eval/fir/fir_n16_w8.v"
+    exit
+}
+
+# Create output directory
+file mkdir eval/out
+
+# Read and prepare the FIR design
+log "=== PROCESSING FIR DESIGN: $1 ==="
+read_verilog $1
+proc
+opt_merge
+opt_clean
+
+# Get design name for output files
+set design_name [file rootname [file tail $1]]
+
+# Show original statistics
+log "=== ORIGINAL DESIGN STATISTICS ==="
+stat
+
+# Export to JSON for nextmap processing
+write_json eval/out/${design_name}.json
+
+# Run standard Xilinx synthesis for comparison
+log "=== STANDARD XILINX SYNTHESIS ==="
+synth_xilinx -family xcup
+tee -o eval/out/${design_name}.stat stat
+
+# Reset and apply nextmap DSP optimization
+design -reset
+read_verilog $1
+proc
+opt_merge
+opt_clean
+
+log "=== APPLYING NEXTMAP DSP OPTIMIZATION ==="
+# Use DSP strategy with technology mapping
+nextmap -strategy dsp
+
+log "=== NEXTMAP OPTIMIZED STATISTICS ==="
+stat
+
+# Write optimized design
+write_verilog eval/out/${design_name}_nextmap.v
+write_json eval/out/${design_name}_nextmap.json
+
+# Run synthesis on optimized design
+log "=== NEXTMAP + XILINX SYNTHESIS ==="
+# Note: Would need DSP blackbox definitions for full synthesis
+synth_xilinx -family xcup
+tee -o eval/out/${design_name}_nextmap.stat stat
+
+log "=== EVALUATION COMPLETE ==="
+log "Output files:"
+log "  - eval/out/${design_name}.json (original JSON)"
+log "  - eval/out/${design_name}.stat (original synthesis stats)"
+log "  - eval/out/${design_name}_nextmap.v (optimized Verilog)"
+log "  - eval/out/${design_name}_nextmap.json (optimized JSON)"
+log "  - eval/out/${design_name}_nextmap.stat (optimized synthesis stats)"
