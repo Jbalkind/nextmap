@@ -1,4 +1,5 @@
 import emap
+from emap.db import NetlistDB
 import json
 import time
 
@@ -8,7 +9,7 @@ MAX_ITER = 4
 
 start_time = time.time()
 
-netlist = emap.NetlistDB(schema_file="emap/schema.sql", cnt=10000)
+netlist = NetlistDB(schema_file="emap/schema.sql", db_file=":memory:", cnt=10000)
 netlist.VERBOSE = True
 with open(f"eval/epfl/{TEST_NAME}.json") as f:
     netlist.build_from_json(json.load(f)["modules"][TOP_MODULE])
