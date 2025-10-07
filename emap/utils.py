@@ -1,29 +1,18 @@
 from typing import Iterable
 
 
-class RollingHash:
-    _POWER_B: list[int]
-    _M: int
-
-    def __init__(self, B: int = 257, M: int = 10**9+7):
-        self._POWER_B = [1, B]
-        self._M = M
-
+class XorHash:
     def hash(self, xs: Iterable[int]) -> int:
         h = 0
         for x in xs:
-            h = (h * self._POWER_B[1] + x) % self._M
+            h ^= hash(x)
         return h
 
-    def update(self, old_h: int, index: int, old_x: int, new_x: int) -> int:
+    def update(self, old_h: int, old_x: int, new_x: int) -> int:
         """
-        Update the hash value by replacing old_x at index with new_x.
+        Update the hash value by replacing old_x with new_x.
         """
-        while len(self._POWER_B) <= index:
-            self._POWER_B.append((self._POWER_B[-1] * self._POWER_B[1]) % self._M)
-        h = (old_h - old_x * self._POWER_B[index]) % self._M    # TODO: is it safe? underflow?
-        h = (h + new_x * self._POWER_B[index]) % self._M
-        return h
+        return old_h ^ hash(old_x) ^ hash(new_x)
 
 
 class DisjointSetUnion:

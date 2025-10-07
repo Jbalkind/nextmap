@@ -10,6 +10,7 @@ try:
 except ImportError:
     POSTGRES_AVAILABLE = False
 
+from .utils import DisjointSetUnion
 from . import rewrites
 from . import extracts
 
@@ -72,4 +73,4 @@ def NetlistDB(schema_file: str, db_file_or_config=None, cnt: int = 0, backend: s
 
 
 # For backward compatibility, also expose the original class name
-__all__ = ['NetlistDB', 'rewrites', 'extracts']
+__all__ = ['NetlistDB', 'rewrites', 'extracts', 'DisjointSetUnion']

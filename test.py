@@ -1,27 +1,47 @@
 import emap
 import json
+import time
 
-SCHEMA_PATH = "emap/schema.sql"
+TEST_NAME = "adder"
+TOP_MODULE = "eval/epfl/adder"
+MAX_ITER = 4
 
-TEST_NAME = "sync_mem_1r1w"
-netlist = emap.NetlistDB(SCHEMA_PATH)
-with open(f"eval/out/{TEST_NAME}.json", "r") as f:
-    netlist.build_from_json(json.load(f)["modules"]["top"])
-netlist.rebuild()
+start_time = time.time()
 
-# cnt = 1
-# while cnt > 0:
-#     dff_forward_aby_cell_matches = emap.rewrites.ematch_dff_forward_aby_cell(netlist, ["$mulu"])
+netlist = emap.NetlistDB(schema_file="emap/schema.sql", cnt=10000)
+netlist.VERBOSE = True
+with open(f"eval/epfl/{TEST_NAME}.json") as f:
+    netlist.build_from_json(json.load(f)["modules"][TOP_MODULE])
 
-#     cnt = emap.rewrites.apply_dff_forward_aby_cell(netlist, dff_forward_aby_cell_matches)
-#     if cnt > 0:
-#         print(f"Applied {cnt} rewrites")
-#     else:
-#         print("No rewrites applied, stopping")
-#     netlist.rebuild()
+wdsu = emap.DisjointSetUnion()
+netlist.rebuild(wdsu)
 
-with open(f"debug.json", "w") as f:
+for i in range(MAX_ITER):
+    matches0 = emap.rewrites.ematch_not_idemp(netlist)
+    matches1 = emap.rewrites.ematch_and_idemp(netlist)
+    matches2 = emap.rewrites.ematch_and_assoc_left(netlist)
+    matches3 = emap.rewrites.ematch_and_comm(netlist)
+    matches4 = emap.rewrites.ematch_and_comp(netlist)
+
+    cnt = 0
+    cnt += emap.rewrites.apply_not_idemp(matches0, wdsu)
+    cnt += emap.rewrites.apply_and_idemp(matches1, wdsu)
+    cnt += emap.rewrites.apply_and_assoc_left(netlist, matches2)
+    cnt += emap.rewrites.apply_and_comm(netlist, matches3)
+    cnt += emap.rewrites.apply_and_comp(matches4, wdsu)
+
+    if cnt > 0:
+        print(f"Applied {cnt} rewrites")
+        netlist.rebuild(wdsu)
+    else:
+        print("No more rewrites can be applied. Stopping.")
+        break
+
+# lut map
+emap.rewrites.techmap_luts(netlist, k=6, cnt=100, rseed=42)
+
+with open("debug.json", "w") as f:
     json.dump(netlist.dump_tables(), f, indent=2)
 
-# with open(f"eval/out/{TEST_NAME}_extracted.json", "w") as f:
-#     json.dump({"creator": "nextmap", "modules": {"top": mod}}, f, indent=2)
+with open(f"eval/out/saturated_{TEST_NAME}.json", "w") as f:
+    json.dump({"creator": "nextmap", "modules": {"top": netlist.write_json()}}, f, indent=2)

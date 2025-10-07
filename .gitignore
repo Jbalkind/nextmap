@@ -1,10 +1,5 @@
-.vscode
-.cache
 __pycache__
-build
-/*.json
-/*.md
-/*.txt
-/*.v
 /eval/out
-/out
+/*.json
+/*.v
+/*.history
