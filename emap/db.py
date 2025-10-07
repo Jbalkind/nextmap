@@ -103,6 +103,33 @@ class NetlistDB(sqlite3.Connection):
         self.commit()
         return id
 
+    def _get_wireset(self, id: int) -> set[int]:
+        """Get wireset members as a set (unordered)."""
+        cur = self.execute("SELECT wire_id FROM wireset_members WHERE wireset_id = ?", (id,))
+        return {w for (w,) in cur}
+
+    def _create_or_lookup_wireset(self, ws: set[int] | list[int]) -> int:
+        """Create or lookup a wireset (unordered set of wires)."""
+        if isinstance(ws, list):
+            ws = set(ws)
+        # Sort for consistent hashing
+        ws_list = sorted(ws)
+        h = self._rhash.hash(ws_list)
+        cur = self.execute("SELECT id FROM wiresets WHERE hash = ?", (h,))
+        rows = cur.fetchall()
+        for (id,) in rows:  # lookup
+            if self._get_wireset(id) == ws:
+                return id
+        # not found, insert
+        cur.execute("INSERT INTO wiresets (hash) VALUES (?) RETURNING id", (h,))
+        id = cur.fetchone()[0]
+        self.executemany(
+            "INSERT INTO wireset_members (wireset_id, wire_id) VALUES (?, ?)",
+            ((id, w) for w in ws)
+        )
+        self.commit()
+        return id
+
     def _add_input(self, name: str, source: list[int]):
         ws = self._create_or_lookup_wirevec(source)
         self.execute("INSERT INTO from_inputs (source, name) VALUES (?, ?)", (ws, name))

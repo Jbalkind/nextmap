@@ -154,7 +154,7 @@ def compute_depth_from_inputs(netlist: NetlistDB,
     return depth
 
 
-def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool = True):
+def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool = True, verbose: bool = False):
     """
     Techmap the netlist with cnt k-LUTs using improved heuristics.
 
@@ -164,8 +164,9 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
         cnt: Maximum number of LUTs to create
         rseed: Random seed for reproducibility
         greedy: If True, use greedy maximal coverage. If False, use weighted random sampling.
+        verbose: Enable verbose output
     """
-    if netlist.VERBOSE:
+    if verbose:
         mode = "greedy coverage" if greedy else "weighted random"
         print(f"Techmapping to {k}-LUTs with random seed {rseed} (mode: {mode})")
 
@@ -174,22 +175,26 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
     inputs_of, primary_inputs = build_input_graph(netlist)
     depth_map = compute_depth_from_inputs(netlist, inputs_of, primary_inputs)
 
-    # Count the fanout of each wire (already have this in fanout_cache)
-    # Prioritize wires with high fanout AND high depth (more critical)
-    cur = netlist.execute("SELECT source FROM from_inputs")
-    inputs = {row[0] for row in cur.fetchall()}
+    if verbose:
+        print(f"Built data structures:")
+        print(f"  Fanout cache: {len(fanout_cache)} wires")
+        print(f"  Input graph: {len(inputs_of)} outputs, {len(primary_inputs)} primary inputs")
+        print(f"  Depth map: {len(depth_map)} wires, max depth = {max(depth_map.values()) if depth_map else 0}")
 
-    # Build candidate set: wires with outputs (not primary inputs or constants)
+    # Build candidate set: only gate outputs (from inputs_of.keys())
+    # These are wires that are produced by gates, not primary inputs
     candidates: dict[int, float] = {}
-    for wire in fanout_cache.keys():
-        if wire not in inputs and wire not in {0, 1}:
-            # Score = fanout * (1 + depth/10) to prioritize both high fanout and deep logic
+    for wire in inputs_of.keys():
+        if wire not in {0, 1}:
+            fanout = fanout_cache.get(wire, 0)
             wire_depth = depth_map.get(wire, 0)
-            score = fanout_cache[wire] * (1.0 + wire_depth / 10.0)
-            candidates[wire] = score
+            # Score = fanout * (1 + depth/10) to prioritize both high fanout and deep logic
+            score = fanout * (1.0 + wire_depth / 10.0)
+            if score > 0:  # Only add if has fanout or depth
+                candidates[wire] = score
 
     if not candidates:
-        if netlist.VERBOSE:
+        if verbose:
             print("No candidate wires found for LUT mapping")
         return
 
@@ -237,7 +242,7 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
                 break  # No more good candidates
 
             w = best_wire
-            if netlist.VERBOSE:
+            if verbose:
                 score = candidates[w]
                 wire_depth = depth_map.get(w, 0)
                 print(f"Chosen wire {w} (depth={wire_depth}, fanout={fanout_cache[w]}, "
@@ -245,7 +250,7 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
 
             cone = find_cone(netlist, k, w, fanout_cache, inputs_of, primary_inputs)
 
-            if netlist.VERBOSE:
+            if verbose:
                 new_coverage = len(cone - covered_wires)
                 print(f"  Cone: {cone} (new coverage: {new_coverage}/{len(cone)})")
 
@@ -258,7 +263,7 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
             covered_wires.add(w)
             luts_created += 1
 
-        if netlist.VERBOSE:
+        if verbose:
             print(f"Created {luts_created} LUTs (requested {cnt}, stopped early: {cnt - luts_created})")
             print(f"Total wire coverage: {len(covered_wires)} wires")
 
@@ -277,14 +282,14 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
             if w in covered_outputs:
                 continue
 
-            if netlist.VERBOSE:
+            if verbose:
                 score = candidates[w]
                 wire_depth = depth_map.get(w, 0)
                 print(f"Chosen wire {w} (depth={wire_depth}, fanout={fanout_cache[w]}, score={score:.1f})")
 
             cone = find_cone(netlist, k, w, fanout_cache, inputs_of, primary_inputs)
 
-            if netlist.VERBOSE:
+            if verbose:
                 print(f"  Cone: {cone}")
 
             ins = netlist._create_or_lookup_wireset(cone)
@@ -295,5 +300,5 @@ def techmap_luts(netlist: NetlistDB, k: int, cnt: int, rseed: int, greedy: bool 
             covered_outputs.add(w)
             luts_created += 1
 
-        if netlist.VERBOSE:
+        if verbose:
             print(f"Created {luts_created} LUTs (requested {cnt}, skipped {cnt - luts_created} duplicates)")
