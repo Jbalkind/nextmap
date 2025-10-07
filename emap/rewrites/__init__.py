@@ -1,9 +1,45 @@
-from .logic import (
-    ematch_not_idemp, apply_not_idemp,
-    ematch_and_idemp, apply_and_idemp,
-    ematch_and_assoc_left, apply_and_assoc_left,
-    ematch_and_comm, apply_and_comm,
-    ematch_and_comp, apply_and_comp
+from .common import (
+    select_aby_cell_by_type
 )
 
-from .lut import techmap_luts
+from .basic import (
+    ematch_comm, apply_comm,
+    ematch_assoc_to_right, apply_assoc_to_right,
+    ematch_assoc_to_left, apply_assoc_to_left
+)
+
+from .misc import (
+    ematch_word_dff, apply_word_dff_split,
+    ematch_wide_dff, apply_wide_dff_split
+)
+
+from .retiming import (
+    ematch_dff_forward_aby_cell, apply_dff_forward_aby_cell,
+    ematch_dff_backward_aby_cell, apply_dff_backward_aby_cell,
+    rewrite_sdff
+)
+
+from .arith import (
+    ematch_unsigned_add_to_signed, apply_unsigned_add_to_signed,
+    apply_signed_arith_input_trunc,
+    apply_unsigned_add_bitblast,
+    ematch_wide_mulu, apply_wide_mulu_split,
+    ematch_complex_mul, apply_complex_mul,
+    ematch_wide_muls, apply_wide_muls_split, apply_wide_muls_split_v2
+)
+
+from .techmap import (
+    create_tech_tables,
+    rewrite_tech
+)
+
+from .dsp import (
+    techmap_dsp
+)
+
+from .lut import (
+    techmap_luts
+)
+
+# AIG rewrites from logic.py are available but not auto-imported
+# to avoid conflicts with word-level rewrites
